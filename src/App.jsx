@@ -1,17 +1,24 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { useEffect, useState } from "react";
 import Home from "./pages/Home";
 import AuthPage from "./pages/AuthPage";
 import AddRecipe from "./pages/AddRecipe";
 import Favorites from "./pages/Favorites";
-import Navbar from "./components/Navbar";
-import MyRecipes from "./pages/MyRecipes"; // ✅ Make sure path is correct
+import MyRecipes from "./pages/MyRecipes";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Navbar from "./components/Navbar";
 
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    setIsLoggedIn(localStorage.getItem("isLoggedIn") === "true");
+  }, []);
+
   return (
     <Router>
-      {/* ✅ Show Navbar only if logged in */}
-      {localStorage.getItem("isLoggedIn") === "true" && <Navbar />}
+      {/* ✅ Show Navbar on all protected pages */}
+      {isLoggedIn && <Navbar />}
 
       <Routes>
         <Route path="/auth" element={<AuthPage />} />
@@ -24,6 +31,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/add-recipe"
           element={
@@ -32,6 +40,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/favorites"
           element={
@@ -40,6 +49,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/my-recipes"
           element={
@@ -49,7 +59,7 @@ function App() {
           }
         />
 
-        {/* 🔁 Default to /auth for any unknown routes */}
+        {/* Redirect all unknown routes to Auth */}
         <Route path="*" element={<AuthPage />} />
       </Routes>
     </Router>

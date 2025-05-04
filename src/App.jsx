@@ -12,7 +12,12 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    setIsLoggedIn(localStorage.getItem("isLoggedIn") === "true");
+    const getCookie = (name) => {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(";").shift();
+    };
+    setIsLoggedIn(getCookie('token') !== undefined);
   }, []);
 
   return (

@@ -10,7 +10,6 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [hasRegistered, setHasRegistered] = useState(false);
 
   const navigate = useNavigate();
 
@@ -18,41 +17,61 @@ export default function AuthPage() {
     toast.info("🔐 Please login or register to continue.");
   }, []);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!email || !password || (!isLogin && !name)) {
       toast.error("❗ Please fill in all required fields.");
       return;
     }
 
     if (isLogin) {
-      // Check if the user is already registered
-      const storedEmail = localStorage.getItem("email");
-      const storedPassword = localStorage.getItem("password");
+      // Login the user
+      try {
+        const response = await fetch("http://localhost:3000/auth/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+          credentials: "include", // Include credentials (cookies) in the request
+        });
 
-      if (!storedEmail || !storedPassword) {
-        toast.warn("📝 Please register before logging in.");
-        return;
-      }
+        const data = await response.json();
+        console.log("response.ok", response.ok);
+        
 
-      // Check if the provided credentials match the stored ones
-      if (storedEmail === email && storedPassword === password) {
-        localStorage.setItem("isLoggedIn", "true");
-        toast.success("✅ Logged in successfully!");
-        setTimeout(() => navigate("/home"), 1000); // Redirect to /home
-      } else {
-        toast.error("❌ Invalid email or password.");
+        if (response.ok) {
+          console.log("inside if");
+          
+          toast.success("✅ Logged in successfully!");
+          navigate("/home"); // Redirect to /home
+        } else {
+          toast.error(`❌ ${data.message || "Invalid email or password."}`);
+        }
+      } catch (error) {
+        toast.error("❌ Something went wrong. Please try again.");
       }
     } else {
-      // Register the new user
-      toast.success("🎉 Registered successfully!");
-      console.log("Register:", { name, email, password });
+      // Register the user
+      try {
+        const response = await fetch("http://localhost:3000/auth/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ name, email, password }),
+        });
 
-      // Store the user's credentials in localStorage
-      localStorage.setItem("email", email);
-      localStorage.setItem("password", password);
+        const data = await response.json();
 
-      setHasRegistered(true);
-      setIsLogin(true); // Switch to login view
+        if (response.ok) {
+          toast.success("🎉 Registered successfully!");
+          setIsLogin(true); // Switch to login view
+        } else {
+          toast.error(`❌ ${data.message || "Registration failed."}`);
+        }
+      } catch (error) {
+        toast.error("❌ Something went wrong. Please try again.");
+      }
     }
 
     setEmail("");
@@ -69,7 +88,7 @@ export default function AuthPage() {
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        color: "#fff"
+        color: "#fff",
       }}
     >
       <ToastContainer />
@@ -81,7 +100,7 @@ export default function AuthPage() {
           width: "90%",
           maxWidth: "360px",
           boxShadow: "0 8px 20px rgba(0,0,0,0.1)",
-          boxSizing: "border-box"
+          boxSizing: "border-box",
         }}
       >
         <h2 style={{ textAlign: "center", marginBottom: "25px" }}>
@@ -118,7 +137,7 @@ export default function AuthPage() {
             style={{
               ...inputStyle,
               paddingRight: "40px",
-              marginBottom: 0
+              marginBottom: 0,
             }}
           />
           <span
@@ -129,7 +148,7 @@ export default function AuthPage() {
               right: "12px",
               transform: "translateY(-50%)",
               cursor: "pointer",
-              color: "#333"
+              color: "#333",
             }}
           >
             {showPassword ? <FaEyeSlash /> : <FaEye />}
@@ -144,7 +163,7 @@ export default function AuthPage() {
             color: "#ff8c00",
             fontWeight: "bold",
             cursor: "pointer",
-            border: "none"
+            border: "none",
           }}
         >
           {isLogin ? "Login" : "Register"}
@@ -179,12 +198,12 @@ const inputStyle = {
   borderRadius: "6px",
   border: "none",
   fontSize: "1rem",
-  boxSizing: "border-box"
+  boxSizing: "border-box",
 };
 
 const linkStyle = {
   color: "#fff",
   textDecoration: "underline",
   cursor: "pointer",
-  fontWeight: "bold"
+  fontWeight: "bold",
 };

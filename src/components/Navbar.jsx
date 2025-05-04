@@ -4,10 +4,15 @@ import { toast } from "react-toastify";
 
 export default function Navbar() {
   const navigate = useNavigate();
-  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true"; // Check for login status
+  const getCookie = (name) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(";").shift();
+  };
+  const isLoggedIn = getCookie('token') !== undefined;  // Check for login status
 
   const handleLogout = () => {
-    localStorage.removeItem("isLoggedIn");
+    document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     toast.success("You have successfully logged out!");
     navigate("/auth"); // Redirect to login page after logout
   };

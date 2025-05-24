@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
-import { Modal, Input, Dropdown, Menu, Spin } from "antd";
+import { Modal, Input, Dropdown, Menu, Spin, Tooltip } from "antd";
 import RecipeCard from "../components/RecipeCard";
+import { FaHeart,FaRegHeart } from "react-icons/fa";
+import axios from "axios";
+import { toast } from "react-toastify";
 
 export default function Home() {
   const [recipes, setRecipes] = useState([
@@ -30,6 +33,7 @@ export default function Home() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false); // State for loading spinner
+  const [favLoading, setFavLoading] = useState({});
 
 
   const getCookie = (name) => {
@@ -143,6 +147,24 @@ export default function Home() {
     setSelectedRecipe(null);
   };
 
+   const handleFavorite = async (recipeId) => {
+    const token = getCookie("token");
+    setFavLoading((prev) => ({ ...prev, [recipeId]: true }));
+    try {
+      await axios.post(
+        `http://localhost:3000/favorites/${recipeId}`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success("Added to favorites!");
+    } catch (err) {
+      toast.error("Failed to add to favorites.");
+    } finally {
+      setFavLoading((prev) => ({ ...prev, [recipeId]: false }));
+    }
+  };
+
+
   // Create dropdown menu for suggestions
   const menu = (
     <Menu>
@@ -219,7 +241,7 @@ export default function Home() {
           zIndex: 1, // Ensure cards are above other components
         }}
       >
-        {recipes.map((recipe, index) => {
+       {/* {recipes.map((recipe, index) => {
           const transformedRecipe = {
             title: recipe.name || recipe.title, // Use `name` if `title` is missing
             image: recipe.thumbnail || recipe.image_url, // Use `thumbnail` if `image_url` is missing
@@ -234,7 +256,108 @@ export default function Home() {
             console.error("Invalid recipe object:", recipe);
             return null; // Skip invalid objects
           }
-        })}
+        })}*/}
+
+  {recipes.map((recipe, index) => {
+  const transformedRecipe = {
+    title: recipe.name || recipe.title,
+    image: recipe.thumbnail || recipe.image_url,
+    ...recipe,
+  };
+
+  if (transformedRecipe.title && transformedRecipe.image) {
+    return (
+      <div
+        key={index}
+        className="recipe-card"
+        style={{
+          border: "1px solid #ddd",
+          borderRadius: "10px",
+          padding: "12px",
+          width: "260px",
+          background: "#fff",
+          position: "relative",
+          marginBottom: "20px",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "flex-end",
+          transition: "transform 0.2s, box-shadow 0.2s",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+          cursor: "pointer",
+        }}
+        onClick={() => handleRecipeClick(transformedRecipe)}
+      >
+        <img
+          src={transformedRecipe.image}
+          alt={transformedRecipe.title}
+          style={{
+            width: "100%",
+            height: "150px",
+            objectFit: "cover",
+            borderRadius: "6px",
+            marginBottom: "10px",
+          }}
+        />
+        <h3 style={{ color: "#333" }}>{transformedRecipe.title}</h3>
+        <p style={{ color: "#555" }}>
+          <strong>By:</strong> {transformedRecipe.postedBy}
+        </p>
+        {/* Heart icon in bottom right with tooltip */}
+        <Tooltip title="Add to Favorites" placement="bottom">
+          <button
+            onClick={e => {
+              e.stopPropagation();
+              handleFavorite(transformedRecipe.id);
+            }}
+            style={{
+              position: "absolute",
+              bottom: "12px",
+              right: "12px",
+              background: "none",
+              border: "none",
+              borderRadius: "50%",
+              cursor: "pointer",
+              color: "#ffb6c1",
+              fontSize: "1.3em",
+              zIndex: 2,
+              transition: "transform 0.2s, color 0.2s",
+              padding: "6px",
+              boxShadow: "none",
+            }}
+            title="Add to Favorites"
+            disabled={favLoading[transformedRecipe.id]}
+            className="heart-btn"
+          >
+            <FaRegHeart />
+          </button>
+        </Tooltip>
+        <style>
+          {`
+            .recipe-card:hover {
+              transform: scale(1.04);
+              box-shadow: 0 6px 24px rgba(255,182,193,0.18);
+              z-index: 3;
+            }
+            @media (max-width: 600px) {
+              .heart-btn {
+                font-size: 1.7em !important;
+                bottom: 8px !important;
+                right: 8px !important;
+              }
+            }
+            .heart-btn:hover {
+              transform: scale(1.15);
+              color: #ff69b4;
+            }
+          `}
+        </style>
+      </div>
+    );
+  } else {
+    console.error("Invalid recipe object:", recipe);
+    return null;
+  }
+})}
       </div>
 
       {/* Modal for recipe details */}

@@ -7,6 +7,7 @@ import Favorites from "./pages/Favorites";
 import MyRecipes from "./pages/MyRecipes";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Navbar from "./components/Navbar";
+import { Affix } from "antd"; // <-- Add this import
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -23,7 +24,11 @@ function App() {
   return (
     <Router>
       {/* ✅ Show Navbar on all protected pages */}
-      {isLoggedIn && <Navbar />}
+      {isLoggedIn && (
+        <Affix offsetTop={0}>
+          <Navbar />
+        </Affix>
+      )}
 
       <Routes>
         <Route path="/auth" element={<AuthPage />} />

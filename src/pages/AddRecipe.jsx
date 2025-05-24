@@ -37,7 +37,12 @@ export default function AddRecipe() {
       instructions,
     };
 
-    const token = localStorage.getItem("token");
+    const getCookie = (name) => {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(";").shift();
+    };
+    const token = getCookie("token");
 
     try {
       await axios.post("http://localhost:3000/recipes", recipeData, {

@@ -153,43 +153,81 @@ export default function MyRecipes() {
   const [recipes, setRecipes] = useState([]);
   const [visibleInstructions, setVisibleInstructions] = useState({});
   const [favLoading, setFavLoading] = useState({});
+  const [favoriteIds, setFavoriteIds] = useState([]);
 
-  useEffect(() => {
-    const fetchRecipes = async () => {
-      const token = getCookie("token");
-      if (!token) {
-        toast.error("You must be logged in to view your recipes.");
-        return;
-      }
-      try {
-        const res = await axios.get("http://localhost:3000/recipes/mine", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setRecipes(res.data || []);
-      } catch (error) {
-        console.error(error);
-        toast.error("Failed to fetch your recipes.");
-      }
-    };
-    fetchRecipes();
-  }, []);
-
-  const handleFavorite = async (recipeId) => {
+ useEffect(() => {
+  const fetchRecipes = async () => {
     const token = getCookie("token");
-    setFavLoading((prev) => ({ ...prev, [recipeId]: true }));
+    if (!token) {
+      toast.error("You must be logged in to view your recipes.");
+      return;
+    }
     try {
-      await axios.post(
+      const res = await axios.get("http://localhost:3000/recipes/mine", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setRecipes(res.data || []);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to fetch your recipes.");
+    }
+  };
+
+  // Fetch favorite IDs
+  const fetchFavorites = async () => {
+    const token = getCookie("token");
+    if (!token) return;
+    try {
+      const res = await axios.get("http://localhost:3000/favorites", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      // Assuming backend returns [{recipe: {id: ...}}, ...]
+      setFavoriteIds(res.data.map(fav => fav.recipe.id));
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  fetchRecipes();
+  fetchFavorites();
+}, []);
+
+const handleFavorite = async (recipeId) => {
+  const token = getCookie("token");
+  setFavLoading((prev) => ({ ...prev, [recipeId]: true }));
+
+  // If already favorited, remove from favorites
+  if (favoriteIds.includes(recipeId)) {
+    try {
+      await axios.delete(
         `http://localhost:3000/favorites/${recipeId}`,
-        {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      toast.success("Added to favorites!");
+      setFavoriteIds((prev) => prev.filter(id => id !== recipeId));
+      toast.info("This item was removed from fav");
     } catch (err) {
-      toast.error("Failed to add to favorites.");
+      toast.error("Failed to remove from favorites.");
     } finally {
       setFavLoading((prev) => ({ ...prev, [recipeId]: false }));
     }
-  };
+    return;
+  }
+
+  // If not favorited, add to favorites
+  try {
+    await axios.post(
+      `http://localhost:3000/favorites/${recipeId}`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    setFavoriteIds((prev) => [...prev, recipeId]);
+    toast.success("This item will added in fav");
+  } catch (err) {
+    toast.error("Failed to add to favorites.");
+  } finally {
+    setFavLoading((prev) => ({ ...prev, [recipeId]: false }));
+  }
+};
 
   const toggleInstructions = (index) => {
     setVisibleInstructions((prev) => ({
@@ -208,30 +246,30 @@ export default function MyRecipes() {
   recipes.map((recipe, index) => (
     <div key={recipe.id || index} style={cardStyle} className="my-recipe-card">
       <Tooltip title="Add to Favorites" placement="bottom">
-        <button
-          onClick={() => handleFavorite(recipe.id)}
-          style={{
-            position: "absolute",
-            bottom: "12px",
-            right: "12px",
-            background: "none",
-            border: "none",
-            borderRadius: "50%",
-            cursor: "pointer",
-            color: "#ffb6c1",
-            fontSize: "1.3em",
-            zIndex: 2,
-            transition: "transform 0.2s, color 0.2s",
-            padding: "6px",
-            boxShadow: "none",
-          }}
-          title="Add to Favorites"
-          disabled={favLoading[recipe.id]}
-          className="heart-btn"
-        >
-          <FaRegHeart />
-        </button>
-      </Tooltip>
+  <button
+    onClick={() => handleFavorite(recipe.id)}
+    style={{
+      position: "absolute",
+      bottom: "12px",
+      right: "12px",
+      background: "none",
+      border: "none",
+      borderRadius: "50%",
+      cursor: "pointer",
+      color: favoriteIds.includes(recipe.id) ? "red" : "#ffb6c1",
+      fontSize: "1.3em",
+      zIndex: 2,
+      transition: "transform 0.2s, color 0.2s",
+      padding: "6px",
+      boxShadow: "none",
+    }}
+    title="Add to Favorites"
+    disabled={favLoading[recipe.id]}
+    className="heart-btn"
+  >
+    {favoriteIds.includes(recipe.id) ? <FaHeart /> : <FaRegHeart />}
+  </button>
+</Tooltip>
       <img
         src={recipe.thumbnail || "https://via.placeholder.com/150"}
         alt={recipe.name || "Recipe"}

@@ -34,6 +34,7 @@ export default function Home() {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false); // State for loading spinner
   const [favLoading, setFavLoading] = useState({});
+  const [favoriteIds, setFavoriteIds] = useState([]);
 
 
   const getCookie = (name) => {
@@ -148,22 +149,56 @@ export default function Home() {
   };
 
    const handleFavorite = async (recipeId) => {
-    const token = getCookie("token");
-    setFavLoading((prev) => ({ ...prev, [recipeId]: true }));
+  const token = getCookie("token");
+  setFavLoading((prev) => ({ ...prev, [recipeId]: true }));
+
+  if (favoriteIds.includes(recipeId)) {
+    // Remove from favorites
     try {
-      await axios.post(
+      await axios.delete(
         `http://localhost:3000/favorites/${recipeId}`,
-        {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      toast.success("Added to favorites!");
+      setFavoriteIds((prev) => prev.filter(id => id !== recipeId));
+      toast.info("This item was removed from fav");
     } catch (err) {
-      toast.error("Failed to add to favorites.");
+      toast.error("Failed to remove from favorites.");
     } finally {
       setFavLoading((prev) => ({ ...prev, [recipeId]: false }));
     }
-  };
+    return;
+  }
 
+  // Add to favorites
+  try {
+    await axios.post(
+      `http://localhost:3000/favorites/${recipeId}`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    setFavoriteIds((prev) => [...prev, recipeId]);
+    toast.success("This item is added in fav");
+  } catch (err) {
+    toast.error("Failed to add to favorites.");
+  } finally {
+    setFavLoading((prev) => ({ ...prev, [recipeId]: false }));
+  }
+};
+useEffect(() => {
+  const fetchFavorites = async () => {
+    const token = getCookie("token");
+    if (!token) return;
+    try {
+      const res = await axios.get("http://localhost:3000/favorites", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setFavoriteIds(res.data.map(fav => fav.recipe.id));
+    } catch (error) {
+      console.error(error);
+    }
+  };
+  fetchFavorites();
+}, []);
 
   // Create dropdown menu for suggestions
   const menu = (
@@ -303,34 +338,34 @@ export default function Home() {
           <strong>By:</strong> {transformedRecipe.postedBy}
         </p>
         {/* Heart icon in bottom right with tooltip */}
-        <Tooltip title="Add to Favorites" placement="bottom">
-          <button
-            onClick={e => {
-              e.stopPropagation();
-              handleFavorite(transformedRecipe.id);
-            }}
-            style={{
-              position: "absolute",
-              bottom: "12px",
-              right: "12px",
-              background: "none",
-              border: "none",
-              borderRadius: "50%",
-              cursor: "pointer",
-              color: "#ffb6c1",
-              fontSize: "1.3em",
-              zIndex: 2,
-              transition: "transform 0.2s, color 0.2s",
-              padding: "6px",
-              boxShadow: "none",
-            }}
-            title="Add to Favorites"
-            disabled={favLoading[transformedRecipe.id]}
-            className="heart-btn"
-          >
-            <FaRegHeart />
-          </button>
-        </Tooltip>
+       <Tooltip title="Add to Favorites" placement="bottom">
+  <button
+    onClick={e => {
+      e.stopPropagation();
+      handleFavorite(transformedRecipe.id);
+    }}
+    style={{
+      position: "absolute",
+      bottom: "12px",
+      right: "12px",
+      background: "none",
+      border: "none",
+      borderRadius: "50%",
+      cursor: "pointer",
+      color: favoriteIds.includes(transformedRecipe.id) ? "red" : "#ffb6c1",
+      fontSize: "1.3em",
+      zIndex: 2,
+      transition: "transform 0.2s, color 0.2s",
+      padding: "6px",
+      boxShadow: "none",
+    }}
+    title="Add to Favorites"
+    disabled={favLoading[transformedRecipe.id]}
+    className="heart-btn"
+  >
+    {favoriteIds.includes(transformedRecipe.id) ? <FaHeart /> : <FaRegHeart />}
+  </button>
+</Tooltip>
         <style>
           {`
             .recipe-card:hover {
